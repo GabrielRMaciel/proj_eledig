@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Autenticação FPGA</title>
+    <style>
+        /* Estilos CSS para a representação visual da placa FPGA */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        body {
+            background-color: #2c3e50; /* Um fundo mais escuro */
+            font-family: 'Roboto Mono', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            -webkit-user-select: none; /* Previne seleção de texto acidental */
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .fpga-board {
+            background-color: #003C5A; /* Cor principal da placa DE2-115 */
+            border-radius: 10px;
+            box-shadow: 5px 5px 25px rgba(0, 0, 0, 0.4), inset 0 0 5px rgba(0,0,0,0.3);
+            padding: 30px;
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .brand-text {
+            color: #ecf0f1;
+            font-weight: bold;
+            font-size: 1.5em;
+            text-align: left;
+            margin-bottom: 25px;
+            text-shadow: 0 0 5px #fff;
+        }
+
+        .component-area {
+            background-color: rgba(0,0,0,0.2);
+            border: 1px solid #757575;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 5px;
+        }
+        
+        .area-label {
+            color: #bdc3c7;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+
+        .simulated-lcd {
+            background-color: #2E8B57; /* Verde escuro do LCD */
+            color: #FFFFFF;
+            padding: 15px;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 1.1em;
+            font-family: monospace;
+            border: 2px solid #3b3b3b;
+            min-height: 25px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .led-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .simulated-led {
+            width: 25px;
+            height: 25px;
+            background-color: #a00000; /* LED vermelho apagado */
+            border: 2px solid #300000;
+            border-radius: 50%;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.7);
+            transition: all 0.2s;
+        }
+
+        .simulated-led.on {
+            background-color: #FF0000; /* LED vermelho aceso */
+            box-shadow: 0 0 15px #FF0000, 0 0 25px #FF4500;
+            border-color: #ffc0cb;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .simulated-button {
+            width: 100%;
+            padding: 15px 0;
+            background-color: #d9d9d9;
+            border: 1px solid #a0a0a0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 4px #a0a0a0;
+        }
+
+        .simulated-button:active:not(:disabled) {
+            box-shadow: 0 1px #a0a0a0;
+            transform: translateY(3px);
+        }
+
+        .simulated-button:disabled {
+            background-color: #666;
+            color: #999;
+            cursor: not-allowed;
+            box-shadow: 0 4px #444;
+        }
+        
+        .controls {
+            text-align: center;
+        }
+
+        #start-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            background-color: #e67e22; /* Botão laranja */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        #start-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        #timer-display {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ecf0f1;
+            margin-top: 15px;
+            height: 20px;
+        }
+
+        #response-preview {
+            background-color: #1c1c1c;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1.1em;
+            letter-spacing: 5px;
+            color: #e0e0e0;
+            min-height: 20px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="fpga-board">
+        <div class="brand-text">Altera DE2-115</div>
+
+        <div class="component-area">
+            <div class="area-label">LCD Display</div>
+            <div class="simulated-lcd" id="status-display">Clique em Iniciar</div>
+        </div>
+        
+        <div class="component-area">
+            <div class="area-label">LEDs Vermelhos (LEDR)</div>
+            <div class="led-group">
+                <div class="simulated-led" id="led-0"></div>
+                <div class="simulated-led" id="led-1"></div>
+                <div class="simulated-led" id="led-2"></div>
+                <div class="simulated-led" id="led-3"></div>
+            </div>
+        </div>
+        
+        <div class="component-area">
+            <div class="area-label">Botões (KEY)</div>
+            <div class="button-group" id="input-buttons">
+                <button class="simulated-button" data-value="1" disabled>1</button>
+                <button class="simulated-button" data-value="2" disabled>2</button>
+                <button class="simulated-button" data-value="3" disabled>3</button>
+                <button class="simulated-button" data-value="4" disabled>4</button>
+            </div>
+             <div id="response-preview">-</div>
+        </div>
+
+        <div class="controls">
+            <button id="start-btn">Iniciar Autenticação</button>
+            <div id="timer-display"></div>
+        </div>
+    </div>
+
+    <script>
+    // Colocamos todo o código dentro deste evento para garantir que a página carregou completamente
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- CONSTANTES E VARIÁVEIS GLOBAIS ---
+        const TAMANHO_DESAFIO = 4;
+        const TEMPO_LIMITE_SEGUNDOS = 10;
+
+        // --- REFERÊNCIAS AOS ELEMENTOS HTML ---
+        const leds = document.querySelectorAll('.simulated-led');
+        const statusDisplay = document.getElementById('status-display');
+        const startBtn = document.getElementById('start-btn');
+        const inputButtonsContainer = document.getElementById('input-buttons');
+        const inputButtons = document.querySelectorAll('.simulated-button');
+        const timerDisplay = document.getElementById('timer-display');
+        const responsePreview = document.getElementById('response-preview');
+
+        // --- VARIÁVEIS DE ESTADO DO JOGO ---
+        let sequenciaDesafio = [];
+        let respostaUsuario = [];
+        let intervalId = null;
+
+        // --- FUNÇÕES PRINCIPAIS ---
+
+        // Função para pausar a execução (essencial para a sequência)
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        // Função para apresentar o desafio visualmente
+        async function apresentarDesafio() {
+            for (const ledIndex of sequenciaDesafio) {
+                await sleep(300);
+                leds[ledIndex].classList.add('on');
+                await sleep(600);
+                leds[ledIndex].classList.remove('on');
+            }
+        }
+
+        // Função que inicia o contador de tempo na tela
+        function iniciarContador() {
+            let tempoRestante = TEMPO_LIMITE_SEGUNDOS;
+            timerDisplay.textContent = `${tempoRestante} segundos restantes`;
+            
+            intervalId = setInterval(() => {
+                tempoRestante--;
+                timerDisplay.textContent = `${tempoRestante} segundos restantes`;
+                if (tempoRestante <= 3) {
+                    timerDisplay.style.color = '#e74c3c'; // Vermelho
+                }
+                if (tempoRestante <= 0) {
+                    finalizarTentativa('falha-tempo');
+                }
+            }, 1000);
+        }
+
+        // Função chamada no final de cada rodada
+        function finalizarTentativa(resultado) {
+            clearInterval(intervalId); // Para o contador
+            setControlsDisabled(true);
+
+            let mensagem = '';
+            let cor = '';
+
+            if (resultado === 'sucesso') {
+                mensagem = 'AUTENTICADO!';
+                cor = '#2ecc71'; // Verde
+            } else if (resultado === 'falha-sequencia') {
+                mensagem = 'FALHA: Sequência Incorreta';
+                cor = '#e74c3c'; // Vermelho
+            } else if (resultado === 'falha-tempo') {
+                mensagem = 'FALHA: Tempo Esgotado';
+                cor = '#e74c3c'; // Vermelho
+            }
+            
+            updateStatus(mensagem, cor);
+
+            // Reinicia o sistema após 3 segundos
+            setTimeout(() => {
+                resetarInterface();
+            }, 3000);
+        }
+        
+        // Função principal que orquestra o início da autenticação
+        async function iniciarAutenticacao() {
+            setControlsDisabled(true);
+            updateStatus('Gerando desafio...', '#ecf0f1');
+
+            // 1. Gerar a sequência aleatória
+            const indices = [0, 1, 2, 3];
+            sequenciaDesafio = [];
+            for (let i = 0; i < TAMANHO_DESAFIO; i++) {
+                const randomIndex = Math.floor(Math.random() * indices.length);
+                sequenciaDesafio.push(indices.splice(randomIndex, 1)[0]);
+            }
+
+            await sleep(1000);
+            updateStatus('Observe os LEDs...', '#ecf0f1');
+            
+            // 2. Apresentar o desafio na tela
+            await apresentarDesafio();
+
+            // 3. Aguardar a resposta do usuário
+            updateStatus('Insira a sequência', '#ecf0f1');
+            respostaUsuario = [];
+            responsePreview.textContent = '_ _ _ _';
+            inputButtons.forEach(btn => btn.disabled = false); // Habilita os botões de input
+            iniciarContador();
+        }
+
+        // Função para lidar com o clique nos botões de resposta
+        function handleInputButtonClick(event) {
+            const button = event.target.closest('.simulated-button');
+            if (!button || button.disabled) return;
+
+            const valor = button.dataset.value;
+            respostaUsuario.push(valor);
+            
+            let previewText = respostaUsuario.join(' ');
+            responsePreview.textContent = previewText.padEnd(TAMANHO_DESAFIO * 2 - 1, ' _');
+
+            if (respostaUsuario.length === TAMANHO_DESAFIO) {
+                const respostaCorretaStr = sequenciaDesafio.map(i => i + 1).join('');
+                if (respostaUsuario.join('') === respostaCorretaStr) {
+                    finalizarTentativa('sucesso');
+                } else {
+                    finalizarTentativa('falha-sequencia');
+                }
+            }
+        }
+        
+        // --- FUNÇÕES AUXILIARES DE INTERFACE ---
+        function updateStatus(message, color) {
+            statusDisplay.textContent = message;
+            statusDisplay.style.color = color;
+        }
+
+        function setControlsDisabled(disabled) {
+            startBtn.disabled = disabled;
+            inputButtons.forEach(btn => btn.disabled = disabled);
+        }
+
+        function resetarInterface() {
+            updateStatus('Clique em Iniciar', '#FFFFFF');
+            timerDisplay.textContent = '';
+            timerDisplay.style.color = '';
+            responsePreview.textContent = '-';
+            startBtn.disabled = false;
+        }
+
+        // --- EVENT LISTENERS (gatilhos de ação) ---
+        startBtn.addEventListener('click', iniciarAutenticacao);
+        inputButtonsContainer.addEventListener('click', handleInputButtonClick);
+        
+        // Garante que a interface está no estado inicial quando a página carrega
+        resetarInterface();
+    });
+    </script>
+</body>
+</html>
