@@ -104,7 +104,7 @@ As cores podem ser modificadas nas variáveis CSS:
 
 ## 👥 Autor
 
-Seu Nome - [@GabrielRMaciel](https://github.com/GabrielRMaciel)
+[@GabrielRMaciel](https://github.com/GabrielRMaciel)
 
 ## 🙏 Agradecimentos
 
